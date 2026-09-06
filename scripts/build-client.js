@@ -4,7 +4,7 @@ const plain=s=>s.replace(/^import .*?;\s*$/gm,'').replace(/^export /gm,'');
 const script=s=>'<script>\n'+s.replace(/<\/script/gi,'<\\/script')+'\n</script>';
 let html=await read('index.html');
 html=html.replace('<link rel="stylesheet" href="style.css">','<style>\n'+await read('style.css')+'\n</style>');
-html=html.replace('<script src="config.js"></script>',script(await read('config.js')));
+html=html.replace('<script src="config.js"></script>',script(await read('config.js')+"\nwindow.VOIDRUNNER_SERVER ||= 'https://void-runner.onrender.com';\n"));
 html=html.replace('<script src="game.js"></script>',script(await read('game.js')));
 const shared=script('window.VoidShared=(()=>{\n'+plain(await read('shared/netcode.js'))+'\nreturn {STEP,moveShip,sweptHit,reconcile};})();');
 const engine=script('window.VoidEngine=(()=>{const {STEP,moveShip,sweptHit}=window.VoidShared;\n'+plain(await read('shared/engine.js'))+'\nreturn {Room};})();');

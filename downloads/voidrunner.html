@@ -11,6 +11,8 @@ window.VOIDRUNNER_SERVER = location.hostname.endsWith('github.io') || location.p
   ? 'https://void-runner.onrender.com'
   : '';
 
+window.VOIDRUNNER_SERVER ||= 'https://void-runner.onrender.com';
+
 </script><script>
 'use strict';
 const canvas=document.querySelector('#game'),ctx=canvas.getContext('2d'),$=s=>document.querySelector(s),W=960,H=600;
