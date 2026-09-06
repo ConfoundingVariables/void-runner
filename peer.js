@@ -4,7 +4,11 @@ export class PeerSession {
   constructor(signal, receive, fail) {
     Object.assign(this,{signal,receive,fail,peers:new Map(),room:null,id:null,host:null,code:null,closed:false});
   }
-  async message(m) {
+  message(m) {
+    this.signaling=(this.signaling||Promise.resolve()).then(()=>this.handleMessage(m));
+    return this.signaling;
+  }
+  async handleMessage(m) {
     try {
       if(m.type==='peer-ready') {
         this.id=m.peer;this.host=m.host;this.code=m.code;
