@@ -8,3 +8,18 @@ test('four real clients share a room, enforce authority, reject fifth, transfer 
 test('revive, squad defeat, per-player upgrades, boss scaling, restart',()=>{const r=new Room('ABC123'),a=r.add('A'),b=r.add('B');r.start(a.id);b.hp=0;b.x=a.x;b.y=a.y;for(let i=0;i<91;i++)r.tick(1/30);assert.equal(b.hp,3);a.hp=0;b.hp=0;r.tick(1/30);assert.equal(r.phase,'dead');r.start(a.id);assert.equal(a.hp,5);r.salvage();assert.equal(a.offers.length,3);assert.equal(new Set(a.offers).size,3);r.choose(a.id,999);assert.equal(a.chosen,false);r.choose(a.id,0);assert.equal(r.phase,'upgrade');const count=a.mods.length;r.choose(a.id,1);assert.equal(a.mods.length,count);r.choose(b.id,0);assert.equal(r.phase,'play');assert.equal(r.wave,2);r.wave=5;r.spawned=0;r.enemies=[];r.spawn();assert.equal(r.enemies[0].type,'boss');assert(r.enemies[0].hp>115)});
 test('stale input stops moving; invalid input cannot teleport; late joins refused',()=>{const r=new Room('ABC123'),p=r.add('A');r.start(p.id);assert.throws(()=>r.add('Late'),/started/);r.input(p.id,{right:true,x:100000});p.lastInput=Date.now()-1000;const x=p.x;r.tick(1/30);assert.equal(p.x,x)});
 test('server serves game assets and health; never exposes source or traversal',async()=>{const app=createGameServer();await new Promise(r=>app.server.listen(0,'127.0.0.1',r));const base='http://127.0.0.1:'+app.server.address().port;try{for(const path of ['/','/game.js','/online.js','/style.css','/config.js','/health'])assert.equal((await fetch(base+path)).status,200);for(const path of ['/server/index.js','/package.json','/.git/config','/../server/engine.js'])assert.equal((await fetch(base+path)).status,404)}finally{await app.close()}});
+
+test('sequenced prediction reconciles and duplicate commands cannot move twice',async()=>{
+ const {reconcile}=await import('../shared/netcode.js');const r=new Room('TEST'),p=r.add('A');r.start(p.id);
+ const frames=Array.from({length:6},(_,i)=>({seq:i+1,input:{right:true}}));const predicted=reconcile(p,frames);
+ r.frames(p.id,frames,r.epoch);for(let i=0;i<6;i++)r.tick(1/60);
+ assert.equal(p.ack,6);assert.equal(p.x,predicted.x);
+ const x=p.x;r.frames(p.id,frames,r.epoch);r.tick(1/60);assert.equal(p.x,x);
+ r.frames(p.id,[{seq:7,input:{right:true}}],r.epoch-1);r.tick(1/60);assert.equal(p.x,x);
+});
+test('swept bullets register between ticks and all ordinary hits carry shooter color',async()=>{
+ const {sweptHit}=await import('../shared/netcode.js');assert(sweptHit({px:100,py:150,x:100,y:50},{x:100,y:100},15));
+ const r=new Room('TEST'),p=r.add('A');r.start(p.id);r.enemies=[{id:90,type:'tank',x:100,y:100,hp:20,max:20,r:20,age:0,speed:0,fire:99}];
+ r.bullets=[{id:91,owner:p.id,color:p.color,x:100,y:150,vx:0,vy:-3000,damage:2,pierce:0,blast:0,hit:new Set()}];
+ r.tick(1/30);assert.equal(r.enemies[0].hp,18);const hit=r.events.find(e=>e.kind==='hit');assert.equal(hit.owner,p.id);assert.equal(hit.color,p.color);assert.equal(hit.damage,2);
+});

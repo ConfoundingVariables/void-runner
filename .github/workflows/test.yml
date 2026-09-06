@@ -15,3 +15,5 @@ jobs:
       - run: npm ci
       - run: node --check game.js && node --check online.js
       - run: npm test
+      - run: npx playwright install --with-deps chromium
+      - run: npm run test:browser

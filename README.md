@@ -2,6 +2,36 @@
 
 Pixel-art space roguelike with solo play and **online co-op for up to four players in one shared arena**. Each pilot controls a separate colored ship. No Sites account or dependency.
 
+## Connection modes
+
+**Player browser (default):** one player's browser runs the authoritative simulation. Other browsers exchange controls and snapshots directly with that host via WebRTC data channels. Render handles room discovery and SDP/ICE signaling only; gameplay does not travel through Render. Everyone must choose the same mode. Keep the host tab visible and the laptop awake. If the host leaves, the match ends; host migration is not implemented in direct mode.
+
+**Dedicated server (fallback):** the Node server runs the same simulation. Choose this when direct peer connections fail, or use a nearby server. The lobby shows measured round-trip latency to the match host, not just the signaling service.
+
+WebRTC still needs signaling and ICE discovery. The default public STUN server helps discover direct routes; some corporate/mobile networks need TURN. No TURN service is bundled. Configure `window.VOIDRUNNER_ICE_SERVERS` with your own ICE servers if needed; never commit long-lived TURN secrets to a public repository. Without TURN, use dedicated-server mode when direct connections fail.
+
+## Responsiveness and combat
+
+- Local movement runs immediately at 60 Hz, then reconciles authoritative positions by replaying unacknowledged input frames. Inputs carry sequence numbers and run epochs; duplicates and stale-run inputs are ignored.
+- The shared simulation runs at 60 Hz and emits snapshots at 30 Hz. A 75 ms interpolation buffer smooths remote movement and ignores out-of-order snapshots.
+- Local muzzle feedback plays immediately. Damage remains authoritative, not guessed on each client.
+- Swept relative-motion collision checks prevent fast projectiles skipping through targets between ticks.
+- Every hit broadcasts the shooter's color, target, and damage. All players see impact flashes and damage numbers, including nonlethal and splash hits.
+- Prediction cannot remove latency from confirmed damage. This version has no historical server rewind / lag compensation, so a host near the squad still helps.
+
+## Host the server on your own laptop
+
+```sh
+npm ci
+npm start
+ngrok http 3000
+```
+
+In the GitHub Pages lobby choose **Dedicated server**, open Server connection, and enter the HTTPS forwarding URL shown by ngrok. Friends use that same URL and room code. No router port-forwarding is needed for an ngrok HTTP tunnel. Your laptop must stay awake with both processes running. A tunnel adds a routing hop and is not automatically faster than a nearby cloud server. Keep the service at Render as an alternative; do not replace it until you compare the lobby ping while playing.
+
+ngrok WebSocket documentation: https://ngrok.com/docs/using-ngrok-with/websockets
+WebRTC connectivity: https://developer.mozilla.org/en-US/docs/Web/API/WebRTC_API/Connectivity
+
 ## Play
 
 - **Solo:** open `index.html` locally or on GitHub Pages, then Launch Run.
@@ -10,7 +40,7 @@ Pixel-art space roguelike with solo play and **online co-op for up to four playe
 - Each pilot picks their own upgrade. The next sector starts after everyone chooses.
 - Stay within 55 game pixels of a downed pilot for 3 seconds to revive them. Downed pilots also return when a sector clears.
 - Boss every fifth sector. Enemy health and wave size scale with squad size. All pilots down means run over.
-- Online play never pauses. Leaving, switching tabs, or losing focus clears movement input. If the host leaves, another pilot becomes host.
+- Online play never pauses. Leaving, switching tabs, or losing focus clears movement input. In dedicated-server mode, if the host leaves, another pilot becomes lobby host. In direct mode, host departure ends the room.
 - Touch controls and optional sound are available.
 
 ## Run the server locally
@@ -45,13 +75,13 @@ GitHub Pages alone cannot run the multiplayer server. HTTPS pages require secure
 
 ## Architecture and limits
 
-- The server owns the simulation at 30 ticks/second and sends snapshots at 20/second. Clients send only controls and choices; they cannot set positions, damage, or health.
-- Clients interpolate snapshots for rendering. This version does not include client-side prediction; distant servers add input latency.
+- The match authority (browser host or server) owns the simulation. Guests send only controls and choices. A browser host is trusted and can modify its own simulation; this is casual co-op, not anti-cheat infrastructure.
+- Guests predict movement and reconcile against the match authority. Remote entities use buffered snapshot interpolation.
 - Maximum four pilots per room. New joins are lobby-only. Disconnected pilots leave immediately, and an empty room is deleted. Reconnecting into an active run is not implemented.
 - Rooms live in memory on **one server instance**. Server restarts/deploys lose active runs. Do not horizontally scale this version.
 - Room codes are invite codes, not accounts or authentication. Use for casual co-op. Input message limits, payload limits, connection limits, room limits, and heartbeat cleanup are included.
 - Free hosting can sleep when idle. Initial connection may be slow. Runs are not persisted.
-- Solo gameplay remains in `game.js`; online rendering/lobby in `online.js`; authoritative gameplay in `server/engine.js`; HTTP/WebSocket transport in `server/index.js`.
+- Solo gameplay remains in `game.js`; online rendering/lobby in `online.js`; shared authoritative gameplay in `shared/engine.js` and peer transport in `peer.js`; HTTP/WebSocket transport in `server/index.js`.
 
 ## Tests
 
