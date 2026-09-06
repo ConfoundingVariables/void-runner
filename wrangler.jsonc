@@ -1,0 +1,13 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "void-runner-india",
+  "main": "cloudflare/worker.js",
+  "compatibility_date": "2026-09-06",
+  "placement": { "region": "aws:ap-south-1" },
+  "vars": { "ARENA_INSTANCE": "india-v1" },
+  "durable_objects": {
+    "bindings": [{ "name": "ARENA", "class_name": "Arena" }]
+  },
+  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["Arena"] }],
+  "observability": { "enabled": true }
+}

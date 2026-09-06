@@ -10,12 +10,16 @@
     "start": "node server/index.js",
     "test": "node --test test/*.test.js",
     "test:browser": "playwright test",
-    "build:client": "node scripts/build-client.js"
+    "build:client": "node scripts/build-client.js",
+    "deploy:cloudflare": "wrangler deploy",
+    "dev:cloudflare": "wrangler dev --local --port 8787",
+    "check:cloudflare": "wrangler deploy --dry-run --outdir .cloudflare-build"
   },
   "dependencies": {
     "ws": "^8.18.3"
   },
   "devDependencies": {
-    "@playwright/test": "^1.63.0"
+    "@playwright/test": "^1.63.0",
+    "wrangler": "^4.129.0"
   }
 }

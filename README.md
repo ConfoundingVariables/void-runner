@@ -2,6 +2,39 @@
 
 Pixel-art space roguelike with solo play and **online co-op for up to four players in one shared arena**. Each pilot controls a separate colored ship. No Sites account or dependency.
 
+## Cloudflare backend (local client)
+
+The Cloudflare port runs the **backend**, not just static HTML. `cloudflare/worker.js` uses a Worker and a SQLite-backed Durable Object to coordinate WebSockets and run the same authoritative simulation. It also supports browser-hosted WebRTC signaling. The portable HTML is the client.
+
+### Deploy from your laptop
+
+```sh
+npm ci
+npx wrangler login
+npm run deploy:cloudflare
+```
+
+Wrangler prints the deployed HTTPS URL. Open `downloads/voidrunner.html`, select **Dedicated server**, open **Server connection**, and enter that URL. Every player uses the same URL and room code. Choose **Player browser** instead if you want Cloudflare to provide signaling while one browser runs the match.
+
+You can also deploy from the repository's **Deploy Cloudflare backend** GitHub Action after setting repository secrets `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID`. Use Cloudflare's Edit Workers template with access to the selected account. Do not paste secrets into chat or commit them. The workflow is manual so code changes do not silently deploy against an unselected account.
+
+### India placement: target, not a promise
+
+`wrangler.jsonc` sets Worker placement to `aws:ap-south-1` (near Mumbai). The Durable Object requests `apac`. Cloudflare decides the actual data center; these settings do **not** guarantee that room simulation runs inside India. Worker placement and Durable Object placement are distinct.
+
+`/health` reports readiness and configured hints. `/location` returns request ingress metadata and an observed egress colo from a trace request. Neither field is a contractual proof of the Durable Object's physical location. Measure the lobby's actual RTT with players in India. If strict Mumbai/India compute placement is required, use a provider with an explicit Indian compute region instead.
+
+Location hints apply on first creation. `ARENA_INSTANCE` selects the logical object; changing it creates a fresh arena instance and does not relocate or preserve old rooms. Keep all clients on the same service and instance. This version uses one regional arena object for small-scale casual co-op, capped at 50 authoritative rooms and 50 peer rooms. Active sockets/timers keep the object awake; Cloudflare quotas and usage charges can apply. Runs are in memory and are lost on restart/deployment. Review your account's plan before deployment.
+
+Cloudflare references:
+- https://developers.cloudflare.com/workers/configuration/placement/
+- https://developers.cloudflare.com/durable-objects/reference/data-location/
+- https://developers.cloudflare.com/durable-objects/best-practices/websockets/
+
+### Local Cloudflare verification
+
+`npm run dev:cloudflare` starts the backend in Wrangler's local runtime at port 8787. `npm run check:cloudflare` validates/bundles it without deployment. Browser tests exercise four local HTML files against that runtime, in both server and peer modes.
+
 ## Portable HTML client
 
 Download `downloads/voidrunner.html` (or use **Download HTML** in the game header). It is one self-contained file: no installation, dependencies, or asset downloads. Open it in a modern desktop browser.

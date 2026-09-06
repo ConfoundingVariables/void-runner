@@ -16,6 +16,7 @@ jobs:
       - run: node --check game.js && node --check online.js
       - run: npm run build:client
       - run: git diff --exit-code -- downloads/voidrunner.html
+      - run: npm run check:cloudflare
       - run: npm test
       - run: npx playwright install --with-deps chromium
       - run: npm run test:browser
