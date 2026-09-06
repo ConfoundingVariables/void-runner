@@ -9,6 +9,6 @@ for(const mode of ['server','peer'])test(`Cloudflare Durable Object: four local 
  for(let i=1;i<4;i++){await pages[i].locator('#roomcode').fill(code);await pages[i].locator('#joinRoom').click();await expect(pages[i].locator('.pilotcard')).toHaveCount(i+1,{timeout:12000})}
  await pages[0].locator('#startSquad').click();for(const p of pages)await expect.poll(()=>p.evaluate(()=>window.netDiagnostics().phase)).toBe('play');
  const guest=pages[1],before=await guest.evaluate(()=>window.netDiagnostics());await guest.keyboard.down('ArrowRight');await guest.waitForTimeout(150);await guest.keyboard.up('ArrowRight');await guest.waitForTimeout(300);const after=await guest.evaluate(()=>window.netDiagnostics());expect(after.predicted.x).toBeGreaterThan(before.predicted.x+15);const observed=await pages[0].evaluate(()=>window.netDiagnostics());expect(Math.abs(observed.players.find(p=>p.id===after.me).x-after.predicted.x)).toBeLessThan(12);expect(errors).toEqual([]);
- }finally{for(const p of pages)await p.close()}
+ }catch(error){for(const p of pages)console.log('CLIENT FAILURE',await p.evaluate(()=>({text:document.body.innerText,diagnostics:window.netDiagnostics?.()})));throw error;}finally{for(const p of pages)await p.close()}
  await expect.poll(async()=>{const r=await request.get('http://127.0.0.1:8787/health');const h=await r.json();return h.rooms+h.peerRooms}).toBe(0);
 });

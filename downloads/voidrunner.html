@@ -147,14 +147,14 @@ class PeerSession {
     pc.onicecandidate=ev=>{if(ev.candidate)this.signal({type:'signal',to:id,data:{candidate:ev.candidate}})};
     const deadline=setTimeout(()=>{if(!this.closed&&pc.connectionState!=='connected'){this.fail('Direct connection timed out. Try server mode; this network may need a TURN relay.')}},15000);
     pc.onconnectionstatechange=()=>{if(pc.connectionState==='connected')clearTimeout(deadline);if(pc.connectionState==='failed'){clearTimeout(deadline);if(this.room){if(e.player)this.room.remove(e.player);pc.close();this.peers.delete(id);this.publish()}else this.fail('Host connection lost. Return to the lobby.')}};
-    const attach=channel=>{e[channel.label]=channel;channel.onmessage=ev=>{if(ev.data.length>262144)return;try{const m=JSON.parse(ev.data);if(this.room)this.command(e,m);else this.receive(m)}catch{}};channel.onopen=()=>{if(!this.room&&channel.label==='control')channel.send(JSON.stringify({type:'hello',name:this.name}));};};
+    const attach=channel=>{e[channel.label]=channel;channel.onmessage=ev=>{if(ev.data.length>262144)return;try{const m=JSON.parse(ev.data);if(this.room)this.command(e,m);else this.receive(m)}catch{}};let opened=false;const ready=()=>{if(opened)return;opened=true;if(!this.room&&channel.label==='control')channel.send(JSON.stringify({type:'hello',name:this.name}));};channel.onopen=ready;if(channel.readyState==='open')ready();};
     pc.ondatachannel=ev=>attach(ev.channel);
     if(offer){attach(pc.createDataChannel('control'));attach(pc.createDataChannel('state',{ordered:false,maxRetransmits:0}));await pc.setLocalDescription(await pc.createOffer());this.signal({type:'signal',to:id,data:{description:pc.localDescription}})}
     return e;
   }
   write(channel,message){if(channel?.readyState==='open'&&channel.bufferedAmount<131072)channel.send(JSON.stringify(message))}
   command(e,m) {
-    if(m.type==='hello'&&!e.player){try{const p=this.room.add(m.name);e.player=p.id;this.write(e.control,{type:'joined',id:p.id,code:this.code});this.publish()}catch(err){this.write(e.control,{type:'error',message:err.message})}return}
+    if(m.type==='hello'&&!e.player){try{const p=this.room.add(m.name);e.player=p.id;this.write(e.control,{type:'joined',id:p.id,code:this.code});this.write(e.control,this.room.snapshot());this.publish()}catch(err){this.write(e.control,{type:'error',message:err.message})}return}
     if(!e.player)return;
     if(m.type==='frames')this.room.frames(e.player,m.frames,m.epoch);
     if(m.type==='choose')this.room.choose(e.player,m.index);

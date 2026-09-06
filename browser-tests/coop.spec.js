@@ -10,5 +10,5 @@ for(const hostmode of ['peer','server'])test(`${hostmode}: four browsers, immedi
  const guest=pages[1];const before=await guest.evaluate(()=>window.netDiagnostics());await guest.keyboard.down('ArrowRight');await guest.waitForTimeout(120);const during=await guest.evaluate(()=>window.netDiagnostics());await guest.keyboard.up('ArrowRight');expect(during.predicted.x).toBeGreaterThan(before.predicted.x+10);if(hostmode==='peer'){const authoritative=during.players.find(p=>p.id===during.me);expect(during.predicted.x).toBeGreaterThan(authoritative.x+5);}
  await guest.waitForTimeout(400);const settled=await guest.evaluate(()=>window.netDiagnostics());const host=await pages[0].evaluate(()=>window.netDiagnostics());const guestOnHost=host.players.find(p=>p.id===settled.me);expect(Math.abs(guestOnHost.x-settled.predicted.x)).toBeLessThan(12);
  await guest.keyboard.down('Space');await guest.waitForTimeout(200);await guest.keyboard.up('Space');expect(errors).toEqual([]);
- }finally{for(const p of pages)await p.close()}
+ }catch(error){for(const p of pages)console.log('CLIENT FAILURE',await p.evaluate(()=>({text:document.body.innerText,diagnostics:window.netDiagnostics?.()})));throw error;}finally{for(const p of pages)await p.close()}
 });
