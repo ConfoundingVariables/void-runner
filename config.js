@@ -1,3 +1,4 @@
-// Optional: set your deployed server origin here when serving from GitHub Pages.
-// Example: window.VOIDRUNNER_SERVER = 'https://your-service.onrender.com';
-window.VOIDRUNNER_SERVER = '';
+// GitHub Pages uses the public multiplayer server; local play uses its local server.
+window.VOIDRUNNER_SERVER = location.hostname.endsWith('github.io') || location.protocol === 'file:'
+  ? 'https://void-runner.onrender.com'
+  : '';
