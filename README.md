@@ -2,6 +2,18 @@
 
 Pixel-art space roguelike with solo play and **online co-op for up to four players in one shared arena**. Each pilot controls a separate colored ship. No Sites account or dependency.
 
+## Portable HTML client
+
+Download `downloads/voidrunner.html` (or use **Download HTML** in the game header). It is one self-contained file: no installation, dependencies, or asset downloads. Open it in a modern desktop browser.
+
+- **Solo:** works offline.
+- **Join online:** uses the configured Render service by default; enter a different service in Server connection if desired.
+- **Host direct co-op:** choose Player browser and Create Room. The simulation runs inside this HTML file; Render only introduces the peers. Share the code with friends.
+- Online still needs internet, signaling and possibly TURN. This file does not start a Node/HTTP/WebSocket listening server. For a laptop server use `npm start` and a tunnel as documented below.
+- Keep the host tab visible. Desktop Chromium and Firefox are the intended targets; file-opening behavior varies on mobile.
+
+Rebuild after changing game code with `npm run build:client`. The generated HTML is tracked so it can be downloaded from any static host. CI checks that it is current, loads it from a real `file://` URL, and exercises peer connections.
+
 ## Connection modes
 
 **Player browser (default):** one player's browser runs the authoritative simulation. Other browsers exchange controls and snapshots directly with that host via WebRTC data channels. Render handles room discovery and SDP/ICE signaling only; gameplay does not travel through Render. Everyone must choose the same mode. Keep the host tab visible and the laptop awake. If the host leaves, the match ends; host migration is not implemented in direct mode.
